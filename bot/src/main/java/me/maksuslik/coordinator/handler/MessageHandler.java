@@ -2,13 +2,18 @@ package me.maksuslik.coordinator.handler;
 
 import me.maksuslik.coordinator.bot.Bot;
 import me.maksuslik.coordinator.command.IBotCommand;
+import me.maksuslik.coordinator.user.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.ParseMode;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import javax.mail.MessagingException;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.Optional;
 
 @Component
@@ -16,24 +21,36 @@ public class MessageHandler {
     @Autowired
     private Bot bot;
 
-    public void handle(Update update) {
+    @Autowired
+    private ApplicationContext context;
+
+    @Autowired
+    private UserService userService;
+
+    public void handle(Update update) throws MessagingException, GeneralSecurityException, IOException {
+        if(update.hasMessage()) System.out.println("update");
         if (!update.hasMessage() || !update.getMessage().hasText())
+            return;
+
+        Long userId = update.getMessage().getFrom().getId();
+
+        if(userService.getState(userId) != null) {
+            userService.getState(userId).execute(update);
+        }
+
+        if(!update.getMessage().getText().startsWith("/"))
             return;
 
         Long chatId = update.getMessage().getChatId();
         String[] text = update.getMessage().getText().split(" ");
         String command = text[0];
-        System.out.printf("command: " + command);
-
-        bot.commandManager.registeredCommands.forEach(i -> {
-            System.out.println("element: " + i);
-        });
 
         Optional<IBotCommand> foundCommand = bot.commandManager.registeredCommands
                 .stream()
                 .filter(predicate -> predicate.getName().equals(command))
                 .findFirst()
                 .or(() -> {
+                    System.out.println("command: " + command);
                     sendMessage(chatId, "Неизвестная команда!");
                     return Optional.empty();
                 });

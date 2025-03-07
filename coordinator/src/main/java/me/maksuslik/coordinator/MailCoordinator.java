@@ -12,23 +12,21 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.GmailScopes;
-import com.google.api.services.gmail.model.Label;
-import com.google.api.services.gmail.model.ListLabelsResponse;
-import com.google.api.services.gmail.model.Message;
-import me.maksuslik.coordinator.message.MessageSender;
+import lombok.SneakyThrows;
 
-import javax.mail.MessagingException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.security.GeneralSecurityException;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Scanner;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 public class MailCoordinator {
-    private static final MailCoordinator MAIL_COORDINATOR = new MailCoordinator();
+    public static final MailCoordinator INSTANCE = new MailCoordinator();
 
     private static final String APPLICATION_NAME = "GmailBot";
 
@@ -39,13 +37,30 @@ public class MailCoordinator {
     private static final List<String> SCOPES = List.of(GmailScopes.GMAIL_LABELS, GmailScopes.MAIL_GOOGLE_COM, GmailScopes.GMAIL_READONLY, GmailScopes.GMAIL_SEND);
     private static final String CREDENTIALS_FILE_PATH = "/credentials.json";
 
+    Map<Long, UUID> ids = new HashMap<>();
+
     /**
      * Создаёт объект учётных даннных пользователя
      *
      * @return Объект учётных данных пользователя
      * @throws IOException Если файл credentials.json не найден
      */
-    public Credential getCredentials(final NetHttpTransport HTTP_TRANSPORT, boolean isNewUser) throws IOException {
+    public CompletableFuture<Credential> getCredentials(GoogleAuthorizationCodeFlow flow, Long userId) throws IOException {
+        LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8888).build();
+        UUID uuid = ids.get(userId) == null ? UUID.randomUUID() : ids.get(userId);
+        ids.put(userId, uuid);
+        System.out.println("userId: " + userId);
+        Credential credential = new AuthorizationCodeInstalledApp(flow, receiver).authorize(uuid.toString());
+        return CompletableFuture.completedFuture(credential);
+    }
+
+    public CompletableFuture<Credential> getCredentials(final NetHttpTransport httpTransport, Long userId) throws IOException {
+        GoogleAuthorizationCodeFlow flow = getAuthorizationCodeFlow(httpTransport);
+        return getCredentials(flow, userId);
+    }
+
+    @SneakyThrows
+    public GoogleAuthorizationCodeFlow getAuthorizationCodeFlow(NetHttpTransport httpTransport) {
         // Загружаем данные из credentials.json
         InputStream in = MailCoordinator.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
         if (in == null) {
@@ -54,23 +69,26 @@ public class MailCoordinator {
         GoogleClientSecrets clientSecrets =
                 GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
 
-        // Отправляем запрос на авторизацию пользователя и возвращаем данные
-        GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
-                HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, SCOPES)
+        return new GoogleAuthorizationCodeFlow.Builder(
+                httpTransport, JSON_FACTORY, clientSecrets, SCOPES)
                 .setDataStoreFactory(new FileDataStoreFactory(new java.io.File(TOKENS_DIRECTORY_PATH)))
                 .setAccessType("offline")
                 .build();
-        LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8888).build();
-        String userId = isNewUser ? UUID.randomUUID().toString() : "ac6755b1-6ad5-4377-a6a2-acca41a92ddf";
-        System.out.println("userId: " + userId);
-        Credential credential = new AuthorizationCodeInstalledApp(flow, receiver).authorize(userId);
-        return credential;
     }
 
-    public Gmail getService(boolean isNewUser) throws IOException, GeneralSecurityException {
+    @SneakyThrows
+    public Gmail getService(Credential credential) {
         final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
-        return new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, getCredentials(HTTP_TRANSPORT, isNewUser))
+        Gmail service = new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
                 .setApplicationName(APPLICATION_NAME)
                 .build();
+
+        return service;
+    }
+
+    @SneakyThrows
+    public Gmail getService(Long userId) {
+        final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
+        return getService(getCredentials(HTTP_TRANSPORT, userId).get(5L, TimeUnit.SECONDS));
     }
 }

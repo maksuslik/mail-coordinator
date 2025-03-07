@@ -1,6 +1,7 @@
 package me.maksuslik.coordinator.bot;
 
 import me.maksuslik.coordinator.command.CommandManager;
+import me.maksuslik.coordinator.command.SendEmailCommand;
 import me.maksuslik.coordinator.command.StartCommand;
 import me.maksuslik.coordinator.command.TestCommand;
 import me.maksuslik.coordinator.handler.MessageHandler;
@@ -11,7 +12,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.ParseMode;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+
+import javax.mail.MessagingException;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 
 @Component
 public class Bot extends TelegramLongPollingBot {
@@ -22,7 +31,7 @@ public class Bot extends TelegramLongPollingBot {
 
     @Lazy
     @Autowired
-    private MessageHandler messageHandler;
+    public MessageHandler messageHandler;
 
     @Value("${bot.username}")
     private String BOT_USERNAME;
@@ -39,6 +48,7 @@ public class Bot extends TelegramLongPollingBot {
     public void onRegister() {
         commandManager.registerCommand(StartCommand.class);
         commandManager.registerCommand(TestCommand.class);
+        commandManager.registerCommand(SendEmailCommand.class);
     }
 
     @Override
@@ -48,7 +58,11 @@ public class Bot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        messageHandler.handle(update);
+        try {
+            messageHandler.handle(update);
+        } catch (MessagingException | GeneralSecurityException | IOException e) {
+            throw new RuntimeException(e);
+        }
         /*if(!update.hasMessage() || !update.getMessage().hasText())
             return;
 
@@ -58,6 +72,25 @@ public class Bot extends TelegramLongPollingBot {
         }
 
         System.out.println(update.getMessage().getText());*/
+    }
+
+    public Message sendMessage(Long chatId, String text, boolean useMarkdown) {
+        String chatIdStr = String.valueOf(chatId);
+        SendMessage sendMessage = new SendMessage(chatIdStr, text);
+        if(useMarkdown)
+            sendMessage.setParseMode(ParseMode.MARKDOWN);
+
+        try {
+            return execute(sendMessage);
+        } catch (TelegramApiException exception) {
+            logger.error("Не удалось отправить сообщение!", exception);
+        }
+
+        return null;
+    }
+
+    public Message sendMessage(Long chatId, String text) {
+        return sendMessage(chatId, text, true);
     }
 
     /*private void sendMessage(Long chatId, String text) {

@@ -24,6 +24,6 @@ public class TestCommand implements IBotCommand {
 
     @Override
     public void execute(Update update) {
-        sendMessage(bot, update.getMessage().getChatId(), "test");
+        bot.sendMessage(update.getMessage().getChatId(), "test");
     }
 }

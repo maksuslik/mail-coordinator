@@ -2,7 +2,7 @@ package me.maksuslik.coordinator.command;
 
 import me.maksuslik.coordinator.bot.Bot;
 import me.maksuslik.coordinator.user.UserService;
-import me.maksuslik.coordinator.user.state.EmailEnteringState;
+import me.maksuslik.coordinator.user.state.MessageCompletionState;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -11,29 +11,29 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import java.util.List;
 
 @Component
-public class StartCommand implements IBotCommand {
+public class SendEmailCommand implements IBotCommand {
     @Autowired
     private Bot bot;
 
     @Autowired
     private UserService userService;
 
-    @Value("${message.start}")
+    @Value("${message.email}")
     private String message;
 
     @Override
     public String getName() {
-        return "/start";
+        return "/send";
     }
 
     @Override
     public List<String> getArgs() {
-        return List.of("recipient", "content");
+        return List.of();
     }
 
     @Override
     public void execute(Update update) {
         bot.sendMessage(update.getMessage().getChatId(), message);
-        userService.setState(update.getMessage().getFrom().getId(), EmailEnteringState.class);
+        userService.setState(update.getMessage().getFrom().getId(), MessageCompletionState.class);
     }
 }

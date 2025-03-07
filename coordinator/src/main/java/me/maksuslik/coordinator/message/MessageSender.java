@@ -2,27 +2,18 @@ package me.maksuslik.coordinator.message;
 
 import com.google.api.client.googleapis.json.GoogleJsonError;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
-import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.model.Message;
+import lombok.SneakyThrows;
 import me.maksuslik.coordinator.MailCoordinator;
 import org.apache.commons.codec.binary.Base64;
 
-import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.util.Properties;
 
 public class MessageSender {
-    private final MailCoordinator mailCoordinator;
-
-    public MessageSender(MailCoordinator mailCoordinator) {
-        this.mailCoordinator = mailCoordinator;
-    }
-
     /**
      * Готовый метод для отправки сообщений
      *
@@ -30,13 +21,10 @@ public class MessageSender {
      * @param toEmailAddress   Адрес электронной почты получателя
      * @return Модель сообщения с информацией о нём
      */
-    public Message sendEmail(String fromEmailAddress, String toEmailAddress) throws MessagingException, IOException, GeneralSecurityException {
+    @SneakyThrows
+    public static Message sendEmail(String fromEmailAddress, String toEmailAddress, String subject, String body, Long userId) {
         // Создаём новый клиент Gmail API
-        Gmail service = mailCoordinator.getService(false);
-
-        // Создаём контент для будущего сообщения
-        String messageSubject = "Test message";
-        String bodyText = "lorem ipsum.";
+        //Gmail service = MailCoordinator.INSTANCE.getService(false);
 
         // Шифруем MIME (Multipurpose Internet Mail Extensions) сообщение
         Properties props = new Properties();
@@ -45,8 +33,8 @@ public class MessageSender {
         email.setFrom(new InternetAddress(fromEmailAddress));
         email.addRecipient(javax.mail.Message.RecipientType.TO,
                 new InternetAddress(toEmailAddress));
-        email.setSubject(messageSubject);
-        email.setText(bodyText);
+        email.setSubject(subject);
+        email.setText(body);
 
         // И формируем из него Gmail сообщение
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
@@ -57,8 +45,9 @@ public class MessageSender {
         message.setRaw(encodedEmail);
 
         // Пытаемся отправить сообщение, если не получилось - выбрасываем ошибку
+
         try {
-            message = service.users().messages().send("me", message).execute();
+            message = MailCoordinator.INSTANCE.getService(userId).users().messages().send("me", message).execute();
             System.out.println("Message id: " + message.getId());
             System.out.println(message.toPrettyString());
             return message;

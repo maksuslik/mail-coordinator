@@ -16,6 +16,5 @@ public class CommandManager {
 
     public void registerCommand(Class<? extends IBotCommand> command) {
         registeredCommands.add(context.getBean(command));
-        System.out.println("size: " + registeredCommands.size());
     }
 }
