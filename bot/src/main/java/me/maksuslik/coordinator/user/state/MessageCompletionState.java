@@ -2,9 +2,13 @@ package me.maksuslik.coordinator.user.state;
 
 import lombok.SneakyThrows;
 import me.maksuslik.coordinator.bot.Bot;
+import me.maksuslik.coordinator.db.data.UserData;
+import me.maksuslik.coordinator.db.repo.UserRepo;
 import me.maksuslik.coordinator.message.EmailMessage;
 import me.maksuslik.coordinator.user.UserService;
+import me.maksuslik.coordinator.util.Validator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Message;
@@ -13,6 +17,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -23,6 +28,12 @@ public class MessageCompletionState implements IUserState {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private UserRepo userRepo;
+
+    @Value("${message.incorrect_email}")
+    private String incorrectEmailMessage;
 
     Map<Long, EmailMessage> messages = new HashMap<>();
 
@@ -37,25 +48,32 @@ public class MessageCompletionState implements IUserState {
             return;
 
         if(!messages.containsKey(userId)) {
-            // TODO: get "from" from db
-            String from = "maksuslik228@gmail.com";
+            UserData userData = userRepo.findById(userId).orElseThrow();
+            String from = userData.getEmail();
             EmailMessage emailMessage = new EmailMessage();
             emailMessage.setFrom(from);
             messages.put(userId, emailMessage);
         }
 
+        Long chatId = update.getMessage().getChatId();
+
         EmailMessage message = messages.get(userId);
         String messageText = update.getMessage().getText();
 
         if(message.getTo() == null) {
+            if(!Validator.isValidEmail(messageText)) {
+                bot.sendMessage(chatId, incorrectEmailMessage);
+                return;
+            }
+
             message.setTo(messageText);
-            bot.sendMessage(update.getMessage().getChatId(), "Укажите заголовок сообщения");
+            bot.sendMessage(chatId, "Укажите заголовок сообщения");
             return;
         }
 
         if(message.getSubject() == null) {
             message.setSubject(messageText);
-            bot.sendMessage(update.getMessage().getChatId(), "Напишите сообщение");
+            bot.sendMessage(chatId, "Напишите сообщение");
             return;
         }
 
@@ -63,19 +81,18 @@ public class MessageCompletionState implements IUserState {
             message.setBody(messageText);
         }
 
-        Message sendingMessage = bot.sendMessage(update.getMessage().getChatId(), "✍\uFE0F _Сообщение отправляется..._");
+        Message sendingMessage = bot.sendMessage(chatId, "✍\uFE0F _Сообщение отправляется..._");
 
-        System.out.println("sending...");
         userService.setIdleState(userId);
         messages.remove(userId);
 
         executorService.submit(() -> {
-            message.send(update.getMessage().getFrom().getId());
+            UserData userData = userRepo.findById(userId).orElseThrow();
+            message.send(userId, UUID.fromString(userData.getId()));
 
             EditMessageText newMessage = new EditMessageText();
-            System.out.println("message id: " + sendingMessage);
             newMessage.setMessageId(sendingMessage.getMessageId());
-            newMessage.setChatId(update.getMessage().getChatId());
+            newMessage.setChatId(chatId);
             newMessage.setText("✅ _Сообщение отправлено!_");
             newMessage.enableMarkdown(true);
 

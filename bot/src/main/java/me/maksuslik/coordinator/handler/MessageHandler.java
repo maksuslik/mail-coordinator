@@ -28,7 +28,6 @@ public class MessageHandler {
     private UserService userService;
 
     public void handle(Update update) throws MessagingException, GeneralSecurityException, IOException {
-        if(update.hasMessage()) System.out.println("update");
         if (!update.hasMessage() || !update.getMessage().hasText())
             return;
 
@@ -50,7 +49,6 @@ public class MessageHandler {
                 .filter(predicate -> predicate.getName().equals(command))
                 .findFirst()
                 .or(() -> {
-                    System.out.println("command: " + command);
                     sendMessage(chatId, "Неизвестная команда!");
                     return Optional.empty();
                 });

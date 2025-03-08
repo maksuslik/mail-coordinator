@@ -12,6 +12,7 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.io.ByteArrayOutputStream;
 import java.util.Properties;
+import java.util.UUID;
 
 public class MessageSender {
     /**
@@ -22,7 +23,7 @@ public class MessageSender {
      * @return Модель сообщения с информацией о нём
      */
     @SneakyThrows
-    public static Message sendEmail(String fromEmailAddress, String toEmailAddress, String subject, String body, Long userId) {
+    public static Message sendEmail(String fromEmailAddress, String toEmailAddress, String subject, String body, Long userId, UUID id) {
         // Создаём новый клиент Gmail API
         //Gmail service = MailCoordinator.INSTANCE.getService(false);
 
@@ -47,8 +48,7 @@ public class MessageSender {
         // Пытаемся отправить сообщение, если не получилось - выбрасываем ошибку
 
         try {
-            message = MailCoordinator.INSTANCE.getService(userId).users().messages().send("me", message).execute();
-            System.out.println("Message id: " + message.getId());
+            message = MailCoordinator.INSTANCE.getService(userId, id).users().messages().send(fromEmailAddress, message).execute();
             System.out.println(message.toPrettyString());
             return message;
         } catch (GoogleJsonResponseException exception) {

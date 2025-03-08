@@ -13,6 +13,7 @@ import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.GmailScopes;
 import lombok.SneakyThrows;
+import org.springframework.stereotype.Component;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -25,6 +26,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+@Component
 public class MailCoordinator {
     public static final MailCoordinator INSTANCE = new MailCoordinator();
 
@@ -45,18 +47,15 @@ public class MailCoordinator {
      * @return Объект учётных данных пользователя
      * @throws IOException Если файл credentials.json не найден
      */
-    public CompletableFuture<Credential> getCredentials(GoogleAuthorizationCodeFlow flow, Long userId) throws IOException {
+    public CompletableFuture<Credential> getCredentials(GoogleAuthorizationCodeFlow flow, Long userId, UUID id) throws IOException {
         LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8888).build();
-        UUID uuid = ids.get(userId) == null ? UUID.randomUUID() : ids.get(userId);
-        ids.put(userId, uuid);
-        System.out.println("userId: " + userId);
-        Credential credential = new AuthorizationCodeInstalledApp(flow, receiver).authorize(uuid.toString());
+        Credential credential = new AuthorizationCodeInstalledApp(flow, receiver).authorize(id.toString());
         return CompletableFuture.completedFuture(credential);
     }
 
-    public CompletableFuture<Credential> getCredentials(final NetHttpTransport httpTransport, Long userId) throws IOException {
+    public CompletableFuture<Credential> getCredentials(final NetHttpTransport httpTransport, Long userId, UUID id) throws IOException {
         GoogleAuthorizationCodeFlow flow = getAuthorizationCodeFlow(httpTransport);
-        return getCredentials(flow, userId);
+        return getCredentials(flow, userId, id);
     }
 
     @SneakyThrows
@@ -87,8 +86,8 @@ public class MailCoordinator {
     }
 
     @SneakyThrows
-    public Gmail getService(Long userId) {
+    public Gmail getService(Long userId, UUID id) {
         final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
-        return getService(getCredentials(HTTP_TRANSPORT, userId).get(5L, TimeUnit.SECONDS));
+        return getService(getCredentials(HTTP_TRANSPORT, userId, id).get(5L, TimeUnit.SECONDS));
     }
 }
