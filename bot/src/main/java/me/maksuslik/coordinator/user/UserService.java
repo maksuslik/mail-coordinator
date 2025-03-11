@@ -13,7 +13,7 @@ public class UserService {
     @Autowired
     private ApplicationContext context;
 
-    private Map<Long, IUserState> states = new HashMap<>();
+    private final Map<Long, IUserState> states = new HashMap<>();
 
     public void setState(Long userId, Class<? extends IUserState> state) {
         states.put(userId, context.getBean(state));

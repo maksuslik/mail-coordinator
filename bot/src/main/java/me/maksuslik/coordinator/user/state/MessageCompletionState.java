@@ -4,7 +4,9 @@ import lombok.SneakyThrows;
 import me.maksuslik.coordinator.bot.Bot;
 import me.maksuslik.coordinator.db.data.UserData;
 import me.maksuslik.coordinator.db.repo.UserRepo;
+import me.maksuslik.coordinator.handler.ButtonHandler;
 import me.maksuslik.coordinator.message.EmailMessage;
+import me.maksuslik.coordinator.message.preset.Confirmation;
 import me.maksuslik.coordinator.user.UserService;
 import me.maksuslik.coordinator.util.Validator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,8 +34,14 @@ public class MessageCompletionState implements IUserState {
     @Autowired
     private UserRepo userRepo;
 
+    @Autowired
+    private ButtonHandler buttonHandler;
+
     @Value("${message.incorrect_email}")
     private String incorrectEmailMessage;
+
+    @Value("${message.email_accept}")
+    private String emailAcceptMessage;
 
     Map<Long, EmailMessage> messages = new HashMap<>();
 
@@ -42,10 +50,15 @@ public class MessageCompletionState implements IUserState {
     @SneakyThrows
     @Override
     public void execute(Update update) {
+        Long chatId = update.getMessage().getChatId();
         Long userId = update.getMessage().getFrom().getId();
 
-        if(update.getMessage().getText().equals("/cancel"))
+        if(update.getMessage().getText().equals("/cancel")) {
+            bot.sendMessage(chatId, "Ввод остановлен");
+            messages.remove(userId);
+            userService.setIdleState(userId);
             return;
+        }
 
         if(!messages.containsKey(userId)) {
             UserData userData = userRepo.findById(userId).orElseThrow();
@@ -54,8 +67,6 @@ public class MessageCompletionState implements IUserState {
             emailMessage.setFrom(from);
             messages.put(userId, emailMessage);
         }
-
-        Long chatId = update.getMessage().getChatId();
 
         EmailMessage message = messages.get(userId);
         String messageText = update.getMessage().getText();
@@ -72,7 +83,7 @@ public class MessageCompletionState implements IUserState {
         }
 
         if(message.getSubject() == null) {
-            message.setSubject(messageText);
+            message.setSubject(messageText.replaceAll("[\\r\\n]+", " "));
             bot.sendMessage(chatId, "Напишите сообщение");
             return;
         }
@@ -81,10 +92,23 @@ public class MessageCompletionState implements IUserState {
             message.setBody(messageText);
         }
 
+        Confirmation confirmation = Confirmation.builder()
+                .chatId(chatId)
+                .message(String.format(emailAcceptMessage, message.getTo(), message.getSubject(), message.getBody()))
+                .onAccept((data) -> processMessage(chatId, userId, message))
+                .onDeny((data) -> {
+                    bot.sendMessage(chatId, "Отправка отменена");
+                    userService.setIdleState(userId);
+                })
+                .build();
+        confirmation.send(bot, buttonHandler);
+        messages.remove(userId);
+    }
+
+    private void processMessage(Long chatId, Long userId, EmailMessage message) {
         Message sendingMessage = bot.sendMessage(chatId, "✍\uFE0F _Сообщение отправляется..._");
 
         userService.setIdleState(userId);
-        messages.remove(userId);
 
         executorService.submit(() -> {
             UserData userData = userRepo.findById(userId).orElseThrow();

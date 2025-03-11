@@ -8,6 +8,8 @@ import me.maksuslik.coordinator.MailCoordinator;
 import me.maksuslik.coordinator.bot.Bot;
 import me.maksuslik.coordinator.db.data.UserData;
 import me.maksuslik.coordinator.db.repo.UserRepo;
+import me.maksuslik.coordinator.handler.ButtonHandler;
+import me.maksuslik.coordinator.message.preset.Confirmation;
 import me.maksuslik.coordinator.user.UserService;
 import me.maksuslik.coordinator.util.Validator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +30,9 @@ public class EmailEnteringState implements IUserState {
     @Autowired
     private UserRepo userRepo;
 
+    @Autowired
+    private ButtonHandler buttonHandler;
+
     @Value("${message.incorrect_email}")
     private String incorrectEmailMessage;
 
@@ -36,12 +41,29 @@ public class EmailEnteringState implements IUserState {
     public void execute(Update update) {
         String entered = update.getMessage().getText().trim();
         Long chatId = update.getMessage().getChatId();
+        Long userId = update.getMessage().getFrom().getId();
 
         if (!Validator.isValidEmail(entered)) {
             bot.sendMessage(chatId, incorrectEmailMessage);
             return;
         }
 
+        userService.setState(userId, WaitingState.class);
+
+        Confirmation confirmation = Confirmation.builder()
+                .chatId(chatId)
+                .message("Ваш адрес электронной почты: " + entered)
+                .onAccept((data) -> authorize(update, chatId))
+                .onDeny((data) -> {
+                    bot.sendMessage(chatId, "Введите адрес электронной почты");
+                    userService.setState(userId, EmailEnteringState.class);
+                })
+                .build();
+        confirmation.send(bot, buttonHandler);
+    }
+
+    @SneakyThrows
+    private void authorize(Update update, Long chatId) {
         NetHttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
         GoogleAuthorizationCodeFlow flow = MailCoordinator.INSTANCE.getAuthorizationCodeFlow(httpTransport);
         bot.sendMessage(chatId, flow.newAuthorizationUrl().setRedirectUri("http://localhost:8888/Callback").toURI().toString(), false);

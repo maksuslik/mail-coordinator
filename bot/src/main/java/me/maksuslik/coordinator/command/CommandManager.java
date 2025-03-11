@@ -1,5 +1,6 @@
 package me.maksuslik.coordinator.command;
 
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
@@ -12,7 +13,8 @@ public class CommandManager {
     @Autowired
     private ApplicationContext context;
 
-    public Set<IBotCommand> registeredCommands = new HashSet<>();
+    @Getter
+    private Set<IBotCommand> registeredCommands = new HashSet<>();
 
     public void registerCommand(Class<? extends IBotCommand> command) {
         registeredCommands.add(context.getBean(command));

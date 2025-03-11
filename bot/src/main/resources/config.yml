@@ -9,3 +9,7 @@ message:
     _Long live @maksuslik_
   email: Укажите электронную почту получателя сообщения
   incorrect_email: Указан некорректный адрес электронной почты!
+  email_accept: |
+    Получатель: %s
+    Тема: %s
+    %s
