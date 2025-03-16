@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
+import java.math.BigInteger;
 import java.util.UUID;
 
 @Service
@@ -80,7 +81,7 @@ public class EmailEnteringState implements IUserState {
 
             MailCoordinator.INSTANCE.getService(credential);
 
-            UserData data = new UserData(update.getMessage().getFrom().getId(), uuid.toString(), update.getMessage().getText());
+            UserData data = new UserData(update.getMessage().getFrom().getId(), uuid.toString(), chatId, update.getMessage().getText(), BigInteger.ZERO, 0L, false);
             userRepo.save(data);
         });
     }

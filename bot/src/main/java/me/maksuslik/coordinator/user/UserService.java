@@ -29,7 +29,7 @@ public class UserService {
 
     public boolean isState(Long userId, Class<? extends IUserState> state) {
         IUserState currentState = states.get(userId);
-        if(currentState == null)
+        if (currentState == null)
             return false;
 
         return currentState == context.getBean(state);

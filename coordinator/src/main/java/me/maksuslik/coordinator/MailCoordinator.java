@@ -19,9 +19,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -32,14 +30,12 @@ public class MailCoordinator {
 
     private static final String APPLICATION_NAME = "GmailBot";
 
-    private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
+    public static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
 
     private static final String TOKENS_DIRECTORY_PATH = "tokens";
 
-    private static final List<String> SCOPES = List.of(GmailScopes.GMAIL_LABELS, GmailScopes.MAIL_GOOGLE_COM, GmailScopes.GMAIL_READONLY, GmailScopes.GMAIL_SEND);
+    private static final List<String> SCOPES = List.of(GmailScopes.GMAIL_LABELS, GmailScopes.MAIL_GOOGLE_COM, GmailScopes.GMAIL_READONLY, GmailScopes.GMAIL_SEND, "https://www.googleapis.com/auth/pubsub");
     private static final String CREDENTIALS_FILE_PATH = "/credentials.json";
-
-    Map<Long, UUID> ids = new HashMap<>();
 
     /**
      * Создаёт объект учётных даннных пользователя
@@ -78,11 +74,10 @@ public class MailCoordinator {
     @SneakyThrows
     public Gmail getService(Credential credential) {
         final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
-        Gmail service = new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
+
+        return new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
                 .setApplicationName(APPLICATION_NAME)
                 .build();
-
-        return service;
     }
 
     @SneakyThrows

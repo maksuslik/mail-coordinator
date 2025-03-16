@@ -12,4 +12,7 @@ import java.util.UUID;
 public interface UserRepo extends CrudRepository<UserData, UUID> {
     @Query("SELECT f FROM users f " + "WHERE f.userId = :id")
     Optional<UserData> findById(Long id);
+
+    @Query("SELECT f FROM users f " + "WHERE f.email = :email")
+    Optional<UserData> findByEmail(String email);
 }

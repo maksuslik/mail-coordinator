@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
-import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -33,18 +32,13 @@ public class StartCommand implements IBotCommand {
     }
 
     @Override
-    public List<String> getArgs() {
-        return List.of();
-    }
-
-    @Override
     public void execute(Update update) {
         Long chatId = update.getMessage().getChatId();
         Long userId = update.getMessage().getFrom().getId();
         Optional<UserData> data = userRepo.findById(userId);
         System.out.println("empty: " + data.isEmpty());
         System.out.println(userRepo.findAll());
-        if(userRepo.findById(userId).isPresent()) {
+        if (userRepo.findById(userId).isPresent()) {
             bot.sendMessage(chatId, "Вы уже авторизованы!");
             return;
         }

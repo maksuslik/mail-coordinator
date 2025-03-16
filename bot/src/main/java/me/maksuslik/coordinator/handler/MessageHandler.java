@@ -9,6 +9,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
+import java.io.IOException;
 import java.util.Optional;
 
 @Component
@@ -31,12 +32,12 @@ public class MessageHandler implements IHandler {
 
         Long userId = update.getMessage().getFrom().getId();
 
-        if(userService.getState(userId) != null) {
+        if (userService.getState(userId) != null) {
             userService.getState(userId).execute(update);
             return;
         }
 
-        if(!update.getMessage().getText().startsWith("/"))
+        if (!update.getMessage().getText().startsWith("/"))
             return;
 
         Long chatId = update.getMessage().getChatId();
@@ -52,6 +53,12 @@ public class MessageHandler implements IHandler {
                     return Optional.empty();
                 });
 
-        foundCommand.ifPresent(cmd -> cmd.execute(update));
+        foundCommand.ifPresent(cmd -> {
+            try {
+                cmd.execute(update);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 }

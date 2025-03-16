@@ -53,14 +53,14 @@ public class MessageCompletionState implements IUserState {
         Long chatId = update.getMessage().getChatId();
         Long userId = update.getMessage().getFrom().getId();
 
-        if(update.getMessage().getText().equals("/cancel")) {
+        if (update.getMessage().getText().equals("/cancel")) {
             bot.sendMessage(chatId, "Ввод остановлен");
             messages.remove(userId);
             userService.setIdleState(userId);
             return;
         }
 
-        if(!messages.containsKey(userId)) {
+        if (!messages.containsKey(userId)) {
             UserData userData = userRepo.findById(userId).orElseThrow();
             String from = userData.getEmail();
             EmailMessage emailMessage = new EmailMessage();
@@ -71,8 +71,8 @@ public class MessageCompletionState implements IUserState {
         EmailMessage message = messages.get(userId);
         String messageText = update.getMessage().getText();
 
-        if(message.getTo() == null) {
-            if(!Validator.isValidEmail(messageText)) {
+        if (message.getTo() == null) {
+            if (!Validator.isValidEmail(messageText)) {
                 bot.sendMessage(chatId, incorrectEmailMessage);
                 return;
             }
@@ -82,13 +82,13 @@ public class MessageCompletionState implements IUserState {
             return;
         }
 
-        if(message.getSubject() == null) {
+        if (message.getSubject() == null) {
             message.setSubject(messageText.replaceAll("[\\r\\n]+", " "));
             bot.sendMessage(chatId, "Напишите сообщение");
             return;
         }
 
-        if(message.getBody() == null) {
+        if (message.getBody() == null) {
             message.setBody(messageText);
         }
 

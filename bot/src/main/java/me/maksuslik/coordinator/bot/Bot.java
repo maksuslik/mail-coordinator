@@ -3,7 +3,7 @@ package me.maksuslik.coordinator.bot;
 import me.maksuslik.coordinator.command.CommandManager;
 import me.maksuslik.coordinator.command.SendEmailCommand;
 import me.maksuslik.coordinator.command.StartCommand;
-import me.maksuslik.coordinator.command.TestCommand;
+import me.maksuslik.coordinator.command.ToggleNotificationsCommand;
 import me.maksuslik.coordinator.handler.ButtonHandler;
 import me.maksuslik.coordinator.handler.MessageHandler;
 import org.slf4j.Logger;
@@ -47,8 +47,8 @@ public class Bot extends TelegramLongPollingBot {
     @Override
     public void onRegister() {
         commandManager.registerCommand(StartCommand.class);
-        commandManager.registerCommand(TestCommand.class);
         commandManager.registerCommand(SendEmailCommand.class);
+        commandManager.registerCommand(ToggleNotificationsCommand.class);
     }
 
     @Override

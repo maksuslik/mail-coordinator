@@ -8,8 +8,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
-import java.util.List;
-
 @Component
 public class SendEmailCommand implements IBotCommand {
     @Autowired
@@ -24,11 +22,6 @@ public class SendEmailCommand implements IBotCommand {
     @Override
     public String getName() {
         return "/send";
-    }
-
-    @Override
-    public List<String> getArgs() {
-        return List.of();
     }
 
     @Override

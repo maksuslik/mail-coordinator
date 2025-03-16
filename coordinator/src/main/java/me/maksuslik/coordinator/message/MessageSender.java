@@ -24,10 +24,7 @@ public class MessageSender {
      */
     @SneakyThrows
     public static Message sendEmail(String fromEmailAddress, String toEmailAddress, String subject, String body, Long userId, UUID id) {
-        // Создаём новый клиент Gmail API
-        //Gmail service = MailCoordinator.INSTANCE.getService(false);
-
-        // Шифруем MIME (Multipurpose Internet Mail Extensions) сообщение
+        // Шифруем MIME сообщение
         Properties props = new Properties();
         Session session = Session.getDefaultInstance(props, null);
         MimeMessage email = new MimeMessage(session);
@@ -46,7 +43,6 @@ public class MessageSender {
         message.setRaw(encodedEmail);
 
         // Пытаемся отправить сообщение, если не получилось - выбрасываем ошибку
-
         try {
             message = MailCoordinator.INSTANCE.getService(userId, id).users().messages().send(fromEmailAddress, message).execute();
             System.out.println(message.toPrettyString());
