@@ -27,11 +27,8 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class MailCoordinator {
     public static final MailCoordinator INSTANCE = new MailCoordinator();
-
-    private static final String APPLICATION_NAME = "GmailBot";
-
     public static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
-
+    private static final String APPLICATION_NAME = "GmailBot";
     private static final String TOKENS_DIRECTORY_PATH = "tokens";
 
     private static final List<String> SCOPES = List.of(GmailScopes.GMAIL_LABELS, GmailScopes.MAIL_GOOGLE_COM, GmailScopes.GMAIL_READONLY, GmailScopes.GMAIL_SEND, "https://www.googleapis.com/auth/pubsub");
@@ -82,7 +79,12 @@ public class MailCoordinator {
 
     @SneakyThrows
     public Gmail getService(Long userId, UUID id) {
-        final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
-        return getService(getCredentials(HTTP_TRANSPORT, userId, id).get(5L, TimeUnit.SECONDS));
+        try {
+            final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
+            return getService(getCredentials(HTTP_TRANSPORT, userId, id).get(5L, TimeUnit.SECONDS));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }

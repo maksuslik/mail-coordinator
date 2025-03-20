@@ -45,7 +45,6 @@ public class MessageSender {
         // Пытаемся отправить сообщение, если не получилось - выбрасываем ошибку
         try {
             message = MailCoordinator.INSTANCE.getService(userId, id).users().messages().send(fromEmailAddress, message).execute();
-            System.out.println(message.toPrettyString());
             return message;
         } catch (GoogleJsonResponseException exception) {
             GoogleJsonError error = exception.getDetails();
